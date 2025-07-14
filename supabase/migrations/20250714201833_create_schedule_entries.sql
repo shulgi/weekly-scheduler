@@ -1,6 +1,3 @@
--- Enable Row Level Security
-ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
-
 -- Create schedule_entries table
 CREATE TABLE schedule_entries (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
