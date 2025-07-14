@@ -436,7 +436,7 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
                   >
                     {(() => {
                       const nextAvailable = getNextAvailableTime(dayEntries)
-                      const options = []
+                      const options: JSX.Element[] = []
                       
                       timeOptions.forEach((time) => {
                         if (time === nextAvailable) {
