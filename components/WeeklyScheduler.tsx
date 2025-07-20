@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Copy, Calendar, LogOut } from 'lucide-react'
+import { Plus, Trash2, Copy, Calendar, LogOut, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/scheduleService'
 import type { ScheduleEntry } from '@/types'
@@ -95,7 +95,8 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
     const newEntry = {
       startTime: startTime,
       endTime: '',
-      description: ''
+      description: '',
+      isPrivate: false
     }
 
     const savedEntry = await ScheduleService.saveEntry(weekKey, dayIndex, newEntry)
@@ -235,10 +236,12 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
       const dayEntries = scheduleData[dayIndex] || []
       text += `${dayNames[dayIndex]} ${date.getMonth() + 1}/${date.getDate()}\n`
       
-      if (dayEntries.length === 0) {
-        text += 'No plans.\n'
+      const publicEntries = dayEntries.filter(entry => !entry.isPrivate)
+      
+      if (publicEntries.length === 0) {
+        text += 'No public plans.\n'
       } else {
-        dayEntries
+        publicEntries
           .sort((a, b) => a.startTime.localeCompare(b.startTime))
           .forEach(entry => {
             const timeRange = entry.endTime ? 
@@ -361,14 +364,26 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
                         <div key={entry.id} className={`p-4 rounded-xl border transition-all duration-200 ${
                           hasConflict 
                             ? 'bg-amber-50 border-amber-200 ring-2 ring-amber-200' 
-                            : 'bg-purple-50 border-purple-100'
+                            : entry.isPrivate 
+                              ? 'bg-slate-100 border-slate-300'
+                              : 'bg-purple-50 border-purple-100'
                         }`}>
-                          {hasConflict && (
-                            <div className="flex items-center gap-2 mb-2 text-amber-700 text-xs">
-                              <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                              time conflict detected
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              {hasConflict && (
+                                <div className="flex items-center gap-1 text-amber-700 text-xs">
+                                  <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                                  time conflict
+                                </div>
+                              )}
+                              {entry.isPrivate && (
+                                <div className="flex items-center gap-1 text-slate-600 text-xs">
+                                  <EyeOff size={12} />
+                                  private
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                           <div className="flex gap-2 mb-3">
                             <div className="flex items-center gap-1 flex-1">
                               <select
@@ -400,12 +415,25 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
                                 ))}
                               </select>
                             </div>
-                            <button
-                              onClick={() => deleteEntry(dayIndex, entry.id)}
-                              className="text-rose-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all duration-200"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => updateEntry(dayIndex, entry.id, 'isPrivate', !entry.isPrivate)}
+                                className={`p-1 rounded-lg transition-all duration-200 ${
+                                  entry.isPrivate 
+                                    ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100' 
+                                    : 'text-purple-400 hover:text-purple-600 hover:bg-purple-50'
+                                }`}
+                                title={entry.isPrivate ? 'Make public' : 'Make private'}
+                              >
+                                {entry.isPrivate ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                              <button
+                                onClick={() => deleteEntry(dayIndex, entry.id)}
+                                className="text-rose-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-all duration-200"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                           <input
                             type="text"

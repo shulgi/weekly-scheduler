@@ -3,6 +3,7 @@ export interface ScheduleEntry {
   startTime: string;
   endTime: string;
   description: string;
+  isPrivate: boolean;
 }
 
 export interface WeekSchedule {
@@ -21,6 +22,7 @@ export interface DatabaseScheduleEntry {
   start_time: string;
   end_time: string;
   description: string;
+  is_private: boolean;
   created_at: string;
   updated_at: string;
 }

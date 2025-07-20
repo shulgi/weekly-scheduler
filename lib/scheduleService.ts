@@ -26,7 +26,8 @@ export class ScheduleService {
         id: entry.id,
         startTime: entry.start_time,
         endTime: entry.end_time || '',
-        description: entry.description
+        description: entry.description,
+        isPrivate: entry.is_private || false
       })
     })
 
@@ -49,7 +50,8 @@ export class ScheduleService {
         day_index: dayIndex,
         start_time: entry.startTime,
         end_time: entry.endTime || null,
-        description: entry.description
+        description: entry.description,
+        is_private: entry.isPrivate || false
       })
       .select()
       .single()
@@ -63,7 +65,8 @@ export class ScheduleService {
       id: data.id,
       startTime: data.start_time,
       endTime: data.end_time || '',
-      description: data.description
+      description: data.description,
+      isPrivate: data.is_private || false
     }
   }
 
@@ -73,6 +76,7 @@ export class ScheduleService {
     if (updates.startTime !== undefined) updateData.start_time = updates.startTime
     if (updates.endTime !== undefined) updateData.end_time = updates.endTime || null
     if (updates.description !== undefined) updateData.description = updates.description
+    if (updates.isPrivate !== undefined) updateData.is_private = updates.isPrivate
 
     const { error } = await supabase
       .from('schedule_entries')
