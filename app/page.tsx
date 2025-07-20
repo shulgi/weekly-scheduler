@@ -16,48 +16,72 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Set a safety timeout to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      console.warn('Loading timeout reached, clearing loading state')
+      setLoading(false)
+    }, 10000) // 10 second timeout
+
     // Check active sessions and sets the user
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user ?? null
-      setUser(user)
-      
-      if (user) {
-        const userProfile = await ProfileService.getProfile(user.id)
-        setProfile(userProfile)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const user = session?.user ?? null
+        setUser(user)
         
-        // Redirect to profile if incomplete
-        if (!userProfile || !userProfile.full_name || !userProfile.username) {
-          router.push('/profile')
-          return
+        if (user) {
+          const userProfile = await ProfileService.getProfile(user.id)
+          setProfile(userProfile)
+          
+          // Redirect to profile if incomplete
+          if (!userProfile || !userProfile.full_name || !userProfile.username) {
+            setLoading(false)
+            clearTimeout(safetyTimeout)
+            router.push('/profile')
+            return
+          }
         }
+        
+        setLoading(false)
+        clearTimeout(safetyTimeout)
+      } catch (error) {
+        console.error('Error during session check:', error)
+        setLoading(false)
+        clearTimeout(safetyTimeout)
       }
-      
-      setLoading(false)
     }
 
     getSession()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const user = session?.user ?? null
-      setUser(user)
-      
-      if (user) {
-        const userProfile = await ProfileService.getProfile(user.id)
-        setProfile(userProfile)
+      try {
+        const user = session?.user ?? null
+        setUser(user)
         
-        // Redirect to profile if incomplete
-        if (!userProfile || !userProfile.full_name || !userProfile.username) {
-          router.push('/profile')
-          return
+        if (user) {
+          const userProfile = await ProfileService.getProfile(user.id)
+          setProfile(userProfile)
+          
+          // Redirect to profile if incomplete
+          if (!userProfile || !userProfile.full_name || !userProfile.username) {
+            setLoading(false)
+            router.push('/profile')
+            return
+          }
         }
+        
+        setLoading(false)
+      } catch (error) {
+        console.error('Error during auth state change:', error)
+        setLoading(false)
       }
-      
-      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(safetyTimeout)
+    }
   }, [router])
 
   const handleAuthSuccess = () => {
