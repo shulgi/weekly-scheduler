@@ -66,7 +66,7 @@ export class ProfileService {
     }
 
     // Username is available if no results, or if the only result is the current user
-    return data.length === 0 || (currentUserId && data[0]?.id === currentUserId)
+    return data.length === 0 || (!!currentUserId && data[0]?.id === currentUserId)
   }
 
   static async uploadAvatar(userId: string, file: File): Promise<string | null> {
