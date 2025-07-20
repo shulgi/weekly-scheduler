@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ProfileService } from '@/lib/profileService'
-import { User, Upload, Eye, EyeOff, ArrowLeft, Check, X } from 'lucide-react'
+import { User, Upload, Eye, EyeOff, ArrowLeft, Check, X, ExternalLink, Copy } from 'lucide-react'
 import type { UserProfile } from '@/types'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -297,6 +297,44 @@ export default function ProfilePage() {
                 <p className="text-red-600 text-xs mt-1">Username is not available</p>
               )}
             </div>
+
+            {/* Public Schedule URL */}
+            {username && usernameAvailable !== false && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                <label className="block text-sm font-medium text-purple-700 mb-2">
+                  Public Schedule URL
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 text-sm text-purple-600 bg-white px-3 py-2 rounded-lg border border-purple-200">
+                    {username.toLowerCase()}.weeklyscheduler.vercel.app
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://${username.toLowerCase()}.weeklyscheduler.vercel.app`)
+                      setMessage('Public schedule URL copied!')
+                      setMessageType('success')
+                      setTimeout(() => setMessage(''), 3000)
+                    }}
+                    className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                    title="Copy URL"
+                  >
+                    <Copy size={16} />
+                  </button>
+                  <a
+                    href={`https://${username.toLowerCase()}.weeklyscheduler.vercel.app`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                    title="Open public schedule"
+                  >
+                    <ExternalLink size={16} />
+                  </a>
+                </div>
+                <p className="text-xs text-purple-500 mt-2">
+                  Share this URL so others can view your public schedule. Private entries will show as "Busy".
+                </p>
+              </div>
+            )}
 
             {/* Password Change */}
             <div className="border-t border-purple-100 pt-6">

@@ -519,9 +519,33 @@ const WeeklyScheduler = ({ onSignOut, profile }: WeeklySchedulerProps) => {
           })}
         </div>
 
-        <div className="mt-10 text-center text-sm text-purple-500 bg-white p-4 rounded-xl shadow-sm border border-purple-200">
-          <p className="mb-1">Your schedule is automatically saved to the cloud.</p>
-          <p>Access it from any device by signing in with your account.</p>
+        <div className="mt-10 space-y-4">
+          <div className="text-center text-sm text-purple-500 bg-white p-4 rounded-xl shadow-sm border border-purple-200">
+            <p className="mb-1">Your schedule is automatically saved to the cloud.</p>
+            <p>Access it from any device by signing in with your account.</p>
+          </div>
+          
+          {profile?.username && (
+            <div className="text-center bg-white p-4 rounded-xl shadow-sm border border-purple-200">
+              <p className="text-sm text-purple-600 mb-2">📅 Share your public schedule:</p>
+              <div className="flex items-center justify-center gap-2">
+                <code className="text-sm bg-purple-50 px-3 py-1 rounded border text-purple-700">
+                  {profile.username.toLowerCase()}.weeklyscheduler.vercel.app
+                </code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://${profile.username!.toLowerCase()}.weeklyscheduler.vercel.app`)
+                    alert('Public schedule URL copied!')
+                  }}
+                  className="p-1 text-purple-400 hover:text-purple-600 transition-colors"
+                  title="Copy public URL"
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+              <p className="text-xs text-purple-400 mt-1">Private entries will show as "Busy"</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
