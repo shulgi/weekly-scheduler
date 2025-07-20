@@ -199,7 +199,7 @@ const WeeklyScheduler = ({ onSignOut, profile }: WeeklySchedulerProps) => {
   }
 
   // Update entry
-  const updateEntry = async (dayIndex: number, entryId: string, field: keyof Omit<ScheduleEntry, 'id'>, value: string) => {
+  const updateEntry = async (dayIndex: number, entryId: string, field: keyof Omit<ScheduleEntry, 'id'>, value: string | boolean) => {
     // Update local state immediately for better UX
     setScheduleData(prev => ({
       ...prev,
