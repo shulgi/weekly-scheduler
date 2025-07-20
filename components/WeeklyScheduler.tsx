@@ -1,16 +1,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Copy, Calendar, LogOut, Eye, EyeOff } from 'lucide-react'
+import { Plus, Trash2, Copy, Calendar, LogOut, Eye, EyeOff, User, Settings } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ScheduleService } from '@/lib/scheduleService'
-import type { ScheduleEntry } from '@/types'
+import type { ScheduleEntry, UserProfile } from '@/types'
+import Link from 'next/link'
 
 interface WeeklySchedulerProps {
   onSignOut: () => void
+  profile: UserProfile | null
 }
 
-const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
+const WeeklyScheduler = ({ onSignOut, profile }: WeeklySchedulerProps) => {
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [scheduleData, setScheduleData] = useState<{ [dayIndex: number]: ScheduleEntry[] }>({})
   const [showTextOutput, setShowTextOutput] = useState(false)
@@ -283,11 +285,29 @@ const WeeklyScheduler = ({ onSignOut }: WeeklySchedulerProps) => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-light text-purple-800">Weekly Schedule</h1>
-              <p className="text-purple-600 mt-1">Welcome, {userEmail}</p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={20} className="text-purple-400" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-4xl font-light text-purple-800">Weekly Schedule</h1>
+                  <p className="text-purple-600 mt-1">Welcome, {profile?.full_name || userEmail}</p>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-5 py-3 bg-white text-purple-600 rounded-xl hover:bg-purple-50 shadow-lg transition-all duration-200 border border-purple-200"
+              >
+                <Settings size={20} />
+                Profile
+              </Link>
               <button
                 onClick={() => setShowTextOutput(!showTextOutput)}
                 className="flex items-center gap-2 px-5 py-3 bg-white text-purple-600 rounded-xl hover:bg-purple-50 shadow-lg transition-all duration-200 border border-purple-200"
