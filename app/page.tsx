@@ -16,71 +16,87 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Set a safety timeout to prevent infinite loading
-    const safetyTimeout = setTimeout(() => {
-      console.warn('Loading timeout reached, clearing loading state')
-      setLoading(false)
-    }, 10000) // 10 second timeout
-
+    let mounted = true
+    
     // Check active sessions and sets the user
     const getSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const user = session?.user ?? null
-        setUser(user)
+        console.log('Getting session...')
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
-        if (user) {
-          const userProfile = await ProfileService.getProfile(user.id)
-          setProfile(userProfile)
-          
-          // Redirect to profile if incomplete
-          if (!userProfile || !userProfile.full_name || !userProfile.username) {
-            setLoading(false)
-            clearTimeout(safetyTimeout)
-            router.push('/profile')
-            return
-          }
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+          if (mounted) setLoading(false)
+          return
         }
         
-        setLoading(false)
-        clearTimeout(safetyTimeout)
+        const user = session?.user ?? null
+        console.log('Session user:', user?.id ? 'Found user' : 'No user')
+        
+        if (mounted) {
+          setUser(user)
+          
+          if (user) {
+            console.log('Fetching profile for user:', user.id)
+            const userProfile = await ProfileService.getProfile(user.id)
+            console.log('Profile result:', userProfile ? 'Found profile' : 'No profile')
+            
+            if (mounted) {
+              setProfile(userProfile)
+              
+              // Redirect to profile if incomplete
+              if (!userProfile || !userProfile.full_name || !userProfile.username) {
+                console.log('Redirecting to profile page - incomplete profile')
+                setLoading(false)
+                router.push('/profile')
+                return
+              }
+            }
+          }
+          
+          setLoading(false)
+        }
       } catch (error) {
         console.error('Error during session check:', error)
-        setLoading(false)
-        clearTimeout(safetyTimeout)
+        if (mounted) setLoading(false)
       }
     }
 
     getSession()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id ? 'User present' : 'No user')
+      
+      if (!mounted) return
+      
       try {
         const user = session?.user ?? null
         setUser(user)
         
         if (user) {
           const userProfile = await ProfileService.getProfile(user.id)
-          setProfile(userProfile)
-          
-          // Redirect to profile if incomplete
-          if (!userProfile || !userProfile.full_name || !userProfile.username) {
-            setLoading(false)
-            router.push('/profile')
-            return
+          if (mounted) {
+            setProfile(userProfile)
+            
+            // Redirect to profile if incomplete
+            if (!userProfile || !userProfile.full_name || !userProfile.username) {
+              router.push('/profile')
+              return
+            }
           }
+        } else {
+          if (mounted) setProfile(null)
         }
         
-        setLoading(false)
       } catch (error) {
         console.error('Error during auth state change:', error)
-        setLoading(false)
       }
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
-      clearTimeout(safetyTimeout)
     }
   }, [router])
 

@@ -3,25 +3,52 @@ import type { UserProfile } from '@/types'
 
 export class ProfileService {
   static async getProfile(userId?: string): Promise<UserProfile | null> {
-    const targetUserId = userId || (await supabase.auth.getUser()).data.user?.id
-    if (!targetUserId) return null
-
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', targetUserId)
-      .single()
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No profile found - this is expected for new users
+    let targetUserId = userId
+    
+    // Only make auth call if no userId provided
+    if (!targetUserId) {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError) {
+          console.error('Auth error in getProfile:', authError)
+          return null
+        }
+        targetUserId = user?.id
+      } catch (error) {
+        console.error('Exception in getProfile auth check:', error)
         return null
       }
-      console.error('Error fetching profile:', error)
+    }
+    
+    if (!targetUserId) {
+      console.log('No user ID available for profile fetch')
       return null
     }
 
-    return data
+    try {
+      console.log('Querying user_profiles for ID:', targetUserId)
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', targetUserId)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No profile found - this is expected for new users
+          console.log('No profile found for user (expected for new users)')
+          return null
+        }
+        console.error('Database error fetching profile:', error)
+        return null
+      }
+
+      console.log('Successfully fetched profile:', data?.username || 'unnamed')
+      return data
+    } catch (error) {
+      console.error('Exception in profile database query:', error)
+      return null
+    }
   }
 
   static async createProfile(profile: Omit<UserProfile, 'created_at' | 'updated_at'>): Promise<UserProfile | null> {
