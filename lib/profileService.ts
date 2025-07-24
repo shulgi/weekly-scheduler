@@ -35,11 +35,12 @@ export class ProfileService {
         .eq('id', targetUserId)
         .single()
       
-      const timeoutPromise = new Promise((_, reject) => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Database query timeout')), 5000)
       })
       
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+      const result = await Promise.race([queryPromise, timeoutPromise])
+      const { data, error } = result
 
       if (error) {
         if (error.code === 'PGRST116') {
