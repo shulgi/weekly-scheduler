@@ -7,17 +7,12 @@ export class ProfileService {
     
     // Only make auth call if no userId provided
     if (!targetUserId) {
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError) {
-          console.error('Auth error in getProfile:', authError)
-          return null
-        }
-        targetUserId = user?.id
-      } catch (error) {
-        console.error('Exception in getProfile auth check:', error)
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        console.error('Auth error in getProfile:', authError)
         return null
       }
+      targetUserId = user.id
     }
     
     if (!targetUserId) {
@@ -25,48 +20,48 @@ export class ProfileService {
       return null
     }
 
-    try {
-      console.log('Querying user_profiles for ID:', targetUserId)
-      
-      // Add timeout to prevent hanging
-      const queryPromise = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', targetUserId)
-        .single()
-      
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Database query timeout')), 5000)
-      })
-      
-      const result = await Promise.race([queryPromise, timeoutPromise])
-      const { data, error } = result
+    console.log('Querying user_profiles for ID:', targetUserId)
+    
+    // Try to get existing profile
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', targetUserId)
+      .single()
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile found - this is expected for new users
-          console.log('No profile found for user (expected for new users)')
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        // No profile found - create a new one
+        console.log('No profile found, creating new profile for user')
+        
+        const newProfile = {
+          id: targetUserId,
+          username: null,
+          full_name: null,
+          avatar_url: null
+        }
+        
+        const { data: createdProfile, error: createError } = await supabase
+          .from('user_profiles')
+          .insert(newProfile)
+          .select()
+          .single()
+        
+        if (createError) {
+          console.error('Error creating new profile:', createError)
           return null
         }
-        if (error.code === '42P01') {
-          // Table doesn't exist
-          console.error('user_profiles table does not exist! Please apply the database migration.')
-          return null
-        }
-        console.error('Database error fetching profile:', error)
-        return null
+        
+        console.log('Successfully created new profile')
+        return createdProfile
       }
-
-      console.log('Successfully fetched profile:', data?.username || 'unnamed')
-      return data
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Database query timeout') {
-        console.error('Database query timed out - possible connection issue or missing table')
-      } else {
-        console.error('Exception in profile database query:', error)
-      }
+      
+      console.error('Database error fetching profile:', fetchError)
       return null
     }
+
+    console.log('Successfully fetched existing profile:', existingProfile?.username || 'unnamed')
+    return existingProfile
   }
 
   static async createProfile(profile: Omit<UserProfile, 'created_at' | 'updated_at'>): Promise<UserProfile | null> {

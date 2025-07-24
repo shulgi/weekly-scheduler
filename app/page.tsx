@@ -18,10 +18,11 @@ export default function Home() {
   useEffect(() => {
     let mounted = true
     
-    // Check active sessions and sets the user
-    const getSession = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log('Getting session...')
+        console.log('Initializing auth...')
+        
+        // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (sessionError) {
@@ -31,66 +32,50 @@ export default function Home() {
         }
         
         const user = session?.user ?? null
-        console.log('Session user:', user?.id ? 'Found user' : 'No user')
+        console.log('Current user:', user?.id ? 'Found user' : 'No user')
         
-        if (mounted) {
-          setUser(user)
+        if (!mounted) return
+        
+        setUser(user)
+        
+        if (user) {
+          console.log('Fetching profile for user:', user.id)
+          const userProfile = await ProfileService.getProfile(user.id)
+          console.log('Profile result:', userProfile ? 'Found profile' : 'No profile')
           
-          if (user) {
-            console.log('Fetching profile for user:', user.id)
-            const userProfile = await ProfileService.getProfile(user.id)
-            console.log('Profile result:', userProfile ? 'Found profile' : 'No profile')
-            
-            if (mounted) {
-              setProfile(userProfile)
-              
-              // Redirect to profile if incomplete
-              if (!userProfile || !userProfile.full_name || !userProfile.username) {
-                console.log('Redirecting to profile page - incomplete profile')
-                setLoading(false)
-                router.push('/profile')
-                return
-              }
-            }
+          if (!mounted) return
+          
+          setProfile(userProfile)
+          
+          // Redirect to profile if incomplete (no username or full_name)
+          if (!userProfile?.full_name || !userProfile?.username) {
+            console.log('Profile incomplete, redirecting to profile page')
+            setLoading(false)
+            router.push('/profile')
+            return
           }
           
-          setLoading(false)
+          console.log('Profile complete, showing schedule')
         }
+        
+        setLoading(false)
+        
       } catch (error) {
-        console.error('Error during session check:', error)
+        console.error('Error during auth initialization:', error)
         if (mounted) setLoading(false)
       }
     }
 
-    getSession()
+    initializeAuth()
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id ? 'User present' : 'No user')
+    // Simple auth state listener for sign out only
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event)
       
-      if (!mounted) return
-      
-      try {
-        const user = session?.user ?? null
-        setUser(user)
-        
-        if (user) {
-          const userProfile = await ProfileService.getProfile(user.id)
-          if (mounted) {
-            setProfile(userProfile)
-            
-            // Redirect to profile if incomplete
-            if (!userProfile || !userProfile.full_name || !userProfile.username) {
-              router.push('/profile')
-              return
-            }
-          }
-        } else {
-          if (mounted) setProfile(null)
-        }
-        
-      } catch (error) {
-        console.error('Error during auth state change:', error)
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
       }
     })
 
