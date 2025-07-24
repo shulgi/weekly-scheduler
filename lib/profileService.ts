@@ -60,7 +60,7 @@ export class ProfileService {
       console.log('Successfully fetched profile:', data?.username || 'unnamed')
       return data
     } catch (error) {
-      if (error.message === 'Database query timeout') {
+      if (error instanceof Error && error.message === 'Database query timeout') {
         console.error('Database query timed out - possible connection issue or missing table')
       } else {
         console.error('Exception in profile database query:', error)
