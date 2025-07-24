@@ -27,16 +27,29 @@ export class ProfileService {
 
     try {
       console.log('Querying user_profiles for ID:', targetUserId)
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent hanging
+      const queryPromise = supabase
         .from('user_profiles')
         .select('*')
         .eq('id', targetUserId)
         .single()
+      
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 5000)
+      })
+      
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
 
       if (error) {
         if (error.code === 'PGRST116') {
           // No profile found - this is expected for new users
           console.log('No profile found for user (expected for new users)')
+          return null
+        }
+        if (error.code === '42P01') {
+          // Table doesn't exist
+          console.error('user_profiles table does not exist! Please apply the database migration.')
           return null
         }
         console.error('Database error fetching profile:', error)
@@ -46,7 +59,11 @@ export class ProfileService {
       console.log('Successfully fetched profile:', data?.username || 'unnamed')
       return data
     } catch (error) {
-      console.error('Exception in profile database query:', error)
+      if (error.message === 'Database query timeout') {
+        console.error('Database query timed out - possible connection issue or missing table')
+      } else {
+        console.error('Exception in profile database query:', error)
+      }
       return null
     }
   }
